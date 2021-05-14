@@ -9,7 +9,7 @@ platform that allows instructors to post lecture videos. However, this program c
 in the general purpose of extracting technical keywords from lecture videos. 
 
 ## Contributors
-This project is jointly completed by Jiaxi Li, Akhil Vyas, Ninghan Zhong, and Tianhui Cai. 
+This project is jointly completed by Jiaxi Li, Akhil Vyas, Ninghan (Ivan) Zhong, and Tianhui Cai. 
 
 ## Usage 
 The ``Driver`` file works locally to extract technical keywords from aVn input lecture video. A sample usage is 
