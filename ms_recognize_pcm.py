@@ -190,7 +190,6 @@ def main():
         sys.exit(1)
 
     file_name = sys.argv[1]
-    # "CS_412_Lecture12_Trim_Trim.mov"
 
     Driver.extract_key_words(file_name)
 
