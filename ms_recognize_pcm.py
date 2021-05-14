@@ -45,21 +45,20 @@ from pydub import AudioSegment
 from string import ascii_letters, digits
 import VideoToText as VideoToText
 import utils as utils
-
-
+import Diver as Driver
 
 recognizers = []
 
 
 def shutdown_recognizers():
     global recognizers
-    while len(recognizers)>0:
+    while len(recognizers) > 0:
         recognizer = recognizers.pop()
         try:
             # dont waste resources with any long running transcriptions
             recognizer.stop_continuous_recognition()
         except Error as ignored:
-              print(ignored)
+            print(ignored)
 
 
 atexit.register(shutdown_recognizers)
@@ -69,14 +68,14 @@ def recognize_pcm_audio_file_to_ms_json(input_pcm_file, phraseList):
     """Performs speech recognition and returns MS-cognitive-services specific json array """
     print("call recognizer")
     global recognizers
-    
+
     # <SpeechContinuousRecognitionWithFile>
     speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
-    
+
     speech_config.request_word_level_timestamps()
-    #https://docs.microsoft.com/en-us/python/api/azure-cognitiveservices-speech/azure.cognitiveservices.speech.profanityoption?view=azure-python
+    # https://docs.microsoft.com/en-us/python/api/azure-cognitiveservices-speech/azure.cognitiveservices.speech.profanityoption?view=azure-python
     speech_config.set_profanity(speechsdk.ProfanityOption.Masked)
-    
+
     audio_config = speechsdk.audio.AudioConfig(filename=input_pcm_file)
 
     recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
@@ -88,31 +87,31 @@ def recognize_pcm_audio_file_to_ms_json(input_pcm_file, phraseList):
         phrase_list_grammar.addPhrase(phrase)
 
     recognizers.append(recognizer)
-    
+
     done = False
     json_results = []
     error_messages = []
-    
+
     def stop_cb(event):
         if recognizer in recognizers:
             recognizers.remove(recognizer)
             recognizer.stop_continuous_recognition()
-             # SDK docs claims error_details can be None. In practice it is an empty string for EOF cancel event, so using as a boolean treats both of these as false
+            # SDK docs claims error_details can be None. In practice it is an empty string for EOF cancel event, so using as a boolean treats both of these as false
             if event.cancellation_details.error_details:
                 nonlocal error_messages
-                error_messages.append( event.cancellation_details.error_details )
+                error_messages.append(event.cancellation_details.error_details)
             # Do this last
             nonlocal done
             done = True
- 
+
     def recognized_cb(event):
         nonlocal json_results
         print(event)
         # event.result.json is actually a string, so we parse it here to check for validity
-        
-        json_results.append( json.loads(event.result.json))
 
-    recognizer.recognized.connect(recognized_cb) # Here are the words!
+        json_results.append(json.loads(event.result.json))
+
+    recognizer.recognized.connect(recognized_cb)  # Here are the words!
 
     # The MS SDK registers the stop_cb for both continuous recognition or canceled events. Canceled events may/are be genereated at EOF! :-(
     recognizer.session_stopped.connect(stop_cb)
@@ -122,18 +121,17 @@ def recognize_pcm_audio_file_to_ms_json(input_pcm_file, phraseList):
     while not done:
         time.sleep(.5)
 
-    if error_messages: 
-        raise RuntimeError( ','.join(error_messages))
-# truncated 1000byte PCM file - "RuntimeError: Exception with an error code: 0x9 (SPXERR_UNEXPECTED_EOF)
-# Bad API key - "WebSocket Upgrade failed with an authentication error (401). Please check for correct subscription key (or authorization token) and region name.
-            
+    if error_messages:
+        raise RuntimeError(','.join(error_messages))
+    # truncated 1000byte PCM file - "RuntimeError: Exception with an error code: 0x9 (SPXERR_UNEXPECTED_EOF)
+    # Bad API key - "WebSocket Upgrade failed with an authentication error (401). Please check for correct subscription key (or authorization token) and region name.
+
     return json_results
 
 
 def save_json(json_results, filename):
     with open(filename, 'w') as out_file:
         json.dump(json_results, out_file)
-
 
 
 def split_audio(audio_path, start, end):
@@ -183,65 +181,30 @@ def convert_dict_to_phraseDict(phrase_dict):
 
 
 def main():
-    # file_name = "anat_trim.mov"
-    # file_name = "neuralScience_Trim_Trim.mov"
-    file_name = "CS 412_Lecture12_Trim_Trim.mov"
+    if len(sys.argv) != 2:
+        print("Invalid Input. Please read the ReadMe document for usage")
+        sys.exit(1)
+    if not speech_key:
+        print(
+            'Please set speech_key environment variable to your cognitive-services-key (and also azure_region if not westus)')
+        sys.exit(1)
 
-    # cut the lecture videos into different scenes
-    scenes = VideoToText.find_scenes(file_name, min_scene_length=1, abs_min=0.75, abs_max=0.98, find_subscenes=True,
-                                     max_subscenes_per_minute=12)
+    file_name = sys.argv[1]
+    # "CS_412_Lecture12_Trim_Trim.mov"
 
-    # for each scene, get its dictionary
-    scene_text_dict, frequent_patterns = VideoToText.scene_to_text(scenes)
-    print(scene_text_dict)
-    print("Raw Dictionary ==================================================================================")
+    Driver.extract_key_words(file_name)
 
-    # combine the multiple dictionary into one
-    phraseDict = convert_dict_to_phraseDict(scene_text_dict)
-    print(phraseDict)
-    print("Combined raw dictionary ==================================================================================")
-
-    # clean up the each dictionary by removing non-letters and non-numbers
-    phraseDict = process_phraseDict(phraseDict)
-    print(phraseDict)
-    print("cleaned dictionaries ==================================================================================")
-
-    # process the dictionary by comparing frequency with the brown corpus
-    phraseList = utils.process_by_frequency(phraseDict)
-    print(phraseList)
-    print("initial phrase list ==================================================================================")
-
-    # process the phrase list by removing stop words
-    phraseList = utils.remove_stop_words(phraseList)
-    print(phraseList)
-    print("Final list after removing stop words ====================================================================")
-    print()
-
-    # extract frequent patterns and put them into a list
-    print(frequent_patterns)
-    print("frequent patterns ===============================================================================")
-    print()
-    frequent_patterns_list = utils.patterns_to_list(frequent_patterns)
-
-    # combine the frequent patterns with single phrase list into one list
-    phraseList = phraseList + frequent_patterns_list
-    print(phraseList)
-    print("Final phrase list ===============================================================================")
-    print()
-
-    # pcm_file = "neuralScience_Trim_Trim.wav"
-    # pcm_file = "anat_trim.wav"
-    # pcm_file = "CS 412_Lecture12_Trim_Trim.wav"
     # json_file = "recognizedspeech.json"
     # json_results = recognize_pcm_audio_file_to_ms_json(pcm_file, phraseList)
     # save_json(json_results, json_file)
+
 
 # Or put them directly here
 speech_key, service_region = "1faf5f464d7844ecbe7c48efffc29993", "eastus"
 
 # Generate json from speech: python ms_recognize_pcm.py myaudio.wav recognizedspeech.json
 # Generate caption from json: python ms_json_to_caption.py recognizedspeech.json transcription.txt
-if __name__== "__main__":
+if __name__ == "__main__":
     # python ms_recognize_pcm.py toy_lecture.wav recognizedspeech.json
     main()
 

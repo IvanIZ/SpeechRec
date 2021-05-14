@@ -115,7 +115,7 @@ def sequential_pattern_mining(transcations, min_support):
 def sequential_pattern_mining_1(transcations, min_support):
     """
     A function that extracts the frequent itemsets from the phrase lists from OCR
-    Updated version from sequential_pattern_mining_1: duplicates are removed. 
+    Updated version from sequential_pattern_mining_1: duplicates are removed.
     """
 
     def make_n(last, second, n, makedict):
