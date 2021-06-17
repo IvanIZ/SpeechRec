@@ -190,12 +190,13 @@ def main():
         sys.exit(1)
 
     file_name = sys.argv[1]
+    pcm_file = sys.argv[2]
 
-    Driver.extract_key_words(file_name)
+    phraseList = Driver.extract_key_words(file_name)
 
-    # json_file = "recognizedspeech.json"
-    # json_results = recognize_pcm_audio_file_to_ms_json(pcm_file, phraseList)
-    # save_json(json_results, json_file)
+    json_file = "recognizedspeech.json"
+    json_results = recognize_pcm_audio_file_to_ms_json(pcm_file, phraseList)
+    save_json(json_results, json_file)
 
 
 # Or put them directly here
