@@ -45,7 +45,7 @@ from pydub import AudioSegment
 from string import ascii_letters, digits
 import VideoToText as VideoToText
 import utils as utils
-import Diver as Driver
+import Driver as Driver
 
 recognizers = []
 
