@@ -11,10 +11,6 @@ in the general purpose of extracting technical keywords from lecture videos.
 ## Contributors
 This project is jointly completed by Jiaxi Li, Akhil Vyas, Ninghan (Ivan) Zhong, and Tianhui Cai. 
 
-## Usage 
-The ``Driver`` file works locally to extract technical keywords from aVn input lecture video. A sample usage is 
-``python3 ms_json_caption.py input_video.mov``
-
 ## References
 To text the quality of the extracted keywords from lecture videos, we run the Microsoft Azure 
 Speech-to-Text recognition system on the input lectures videos and check how recognition accuracy 
